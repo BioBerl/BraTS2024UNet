@@ -1,0 +1,20 @@
+{
+  "caseId": "case003",
+  "patientId": "BraTS-GLI-00003",
+  "description": "Glioma with necrotic core and edema",
+  "metrics": {
+    "dice": 0.9123,
+    "iou": 0.8398,
+    "sensitivity": 0.9234,
+    "specificity": 0.9991,
+    "precision": 0.9015,
+    "hausdorff": 8.67
+  },
+  "errorPoints": [
+    { "x": -8, "y": 12, "z": 18, "type": "FP" },
+    { "x": 4, "y": -6, "z": 10, "type": "FN" },
+    { "x": 15, "y": 18, "z": -4, "type": "FP" },
+    { "x": -12, "y": 8, "z": 6, "type": "FN" },
+    { "x": 10, "y": -15, "z": 12, "type": "FP" }
+  ]
+}

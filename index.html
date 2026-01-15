@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BraTS 2024 - Brain Tumor Segmentation Viewer</title>
+    <script src="https://unpkg.com/@niivue/niivue@0.43.0/dist/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+        }
+
+        select, button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        select:hover, button:hover {
+            background: #764ba2;
+        }
+
+        select {
+            min-width: 150px;
+        }
+
+        .panels-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+        }
+
+        .panel {
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            background: #333;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .panel-content {
+            position: relative;
+            height: 400px;
+        }
+
+        .viewer-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .metrics-container {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .slice-controls {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .slice-control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .slice-control-row label {
+            min-width: 100px;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        .slice-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .view-button {
+            flex: 1;
+            padding: 10px;
+            background: #444;
+            border: 2px solid #667eea;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .view-button.active {
+            background: #667eea;
+        }
+
+        .view-button:hover {
+            background: #764ba2;
+        }
+
+        .threejs-container {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .threejs-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        #threejs-canvas {
+            width: 100%;
+            height: 400px;
+            border-radius: 5px;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        @media (max-width: 1200px) {
+            .panels-container {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-content {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 BraTS 2024 - Brain Tumor Segmentation Viewer</h1>
+        <p>Interactive 3-Panel NIFTI Visualization with Ground Truth, Predictions, and Error Analysis</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="caseSelector">Case:</label>
+            <select id="caseSelector">
+                <option value="">-- Select Case --</option>
+            </select>
+        </div>
+        <button id="refreshBtn">🔄 Refresh</button>
+    </div>
+
+    <div id="loadingMessage" class="loading" style="display: none;">
+        Loading case data...
+    </div>
+
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+    <div class="panels-container" id="panelsContainer" style="display: none;">
+        <div class="panel">
+            <div class="panel-header">Ground Truth Mask</div>
+            <div class="panel-content">
+                <canvas id="groundtruth-canvas" class="viewer-canvas"></canvas>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Prediction Mask</div>
+            <div class="panel-content">
+                <canvas id="prediction-canvas" class="viewer-canvas"></canvas>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Error Map (FP/FN)</div>
+            <div class="panel-content">
+                <canvas id="error-canvas" class="viewer-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="slice-controls" id="sliceControls" style="display: none;">
+        <h3>Slice Navigation</h3>
+        <div class="slice-control-row">
+            <label>Axial:</label>
+            <input type="range" id="axialSlider" min="0" max="100" value="50">
+            <span class="slice-value" id="axialValue">50</span>
+        </div>
+        <div class="slice-control-row">
+            <label>Sagittal:</label>
+            <input type="range" id="sagittalSlider" min="0" max="100" value="50">
+            <span class="slice-value" id="sagittalValue">50</span>
+        </div>
+        <div class="slice-control-row">
+            <label>Coronal:</label>
+            <input type="range" id="coronalSlider" min="0" max="100" value="50">
+            <span class="slice-value" id="coronalValue">50</span>
+        </div>
+        <div class="view-buttons">
+            <button class="view-button" id="axialViewBtn">Axial View</button>
+            <button class="view-button" id="sagittalViewBtn">Sagittal View</button>
+            <button class="view-button" id="coronalViewBtn">Coronal View</button>
+        </div>
+    </div>
+
+    <div class="metrics-container" id="metricsContainer" style="display: none;">
+        <h3>Segmentation Metrics</h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Dice Score</div>
+                <div class="metric-value" id="diceValue">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">IoU (Jaccard Index)</div>
+                <div class="metric-value" id="iouValue">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Sensitivity (Recall)</div>
+                <div class="metric-value" id="sensitivityValue">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Specificity</div>
+                <div class="metric-value" id="specificityValue">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Precision</div>
+                <div class="metric-value" id="precisionValue">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Hausdorff Distance</div>
+                <div class="metric-value" id="hausdorffValue">-</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="threejs-container" id="threejsContainer" style="display: none;">
+        <h3 class="threejs-title">3D Error Point Cloud Visualization</h3>
+        <canvas id="threejs-canvas"></canvas>
+    </div>
+
+    <script>
+        // Global variables
+        let groundtruthViewer = null;
+        let predictionViewer = null;
+        let errorViewer = null;
+        let currentCase = null;
+        let availableCases = [];
+        let scene, camera, renderer, pointCloud;
+        let isThreeJSInitialized = false;
+
+        // Initialize NiiVue viewers
+        function initViewers() {
+            groundtruthViewer = new niivue.Niivue({
+                show3Dcrosshair: true,
+                backColor: [0.1, 0.1, 0.1, 1]
+            });
+            groundtruthViewer.attachToCanvas(document.getElementById('groundtruth-canvas'));
+
+            predictionViewer = new niivue.Niivue({
+                show3Dcrosshair: true,
+                backColor: [0.1, 0.1, 0.1, 1]
+            });
+            predictionViewer.attachToCanvas(document.getElementById('prediction-canvas'));
+
+            errorViewer = new niivue.Niivue({
+                show3Dcrosshair: true,
+                backColor: [0.1, 0.1, 0.1, 1]
+            });
+            errorViewer.attachToCanvas(document.getElementById('error-canvas'));
+
+            // Synchronize viewers
+            synchronizeViewers();
+        }
+
+        // Synchronize slice positions across all viewers
+        function synchronizeViewers() {
+            if (!groundtruthViewer || !predictionViewer || !errorViewer) return;
+
+            const syncSlice = (sourceViewer) => {
+                const scene = sourceViewer.scene;
+                if (predictionViewer !== sourceViewer) {
+                    predictionViewer.scene.crosshairPos = [...scene.crosshairPos];
+                    predictionViewer.drawScene();
+                }
+                if (errorViewer !== sourceViewer) {
+                    errorViewer.scene.crosshairPos = [...scene.crosshairPos];
+                    errorViewer.drawScene();
+                }
+                if (groundtruthViewer !== sourceViewer) {
+                    groundtruthViewer.scene.crosshairPos = [...scene.crosshairPos];
+                    groundtruthViewer.drawScene();
+                }
+                updateSliderValues();
+            };
+
+            groundtruthViewer.onLocationChange = () => syncSlice(groundtruthViewer);
+            predictionViewer.onLocationChange = () => syncSlice(predictionViewer);
+            errorViewer.onLocationChange = () => syncSlice(errorViewer);
+        }
+
+        // Update slider values based on current position
+        function updateSliderValues() {
+            if (!groundtruthViewer || !groundtruthViewer.volumes || groundtruthViewer.volumes.length === 0) return;
+
+            const pos = groundtruthViewer.scene.crosshairPos;
+            const dims = groundtruthViewer.volumes[0].dims;
+
+            // Update slider positions
+            document.getElementById('axialSlider').max = dims[2] - 1;
+            document.getElementById('axialSlider').value = Math.round(pos[2]);
+            document.getElementById('axialValue').textContent = Math.round(pos[2]);
+
+            document.getElementById('sagittalSlider').max = dims[0] - 1;
+            document.getElementById('sagittalSlider').value = Math.round(pos[0]);
+            document.getElementById('sagittalValue').textContent = Math.round(pos[0]);
+
+            document.getElementById('coronalSlider').max = dims[1] - 1;
+            document.getElementById('coronalSlider').value = Math.round(pos[1]);
+            document.getElementById('coronalValue').textContent = Math.round(pos[1]);
+        }
+
+        // Load available cases
+        async function loadAvailableCases() {
+            try {
+                // Try to fetch cases dynamically
+                const response = await fetch('assets/data/cases.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    availableCases = data.cases || [];
+                } else {
+                    // Fallback: try to detect cases manually
+                    availableCases = [];
+                    for (let i = 1; i <= 10; i++) {
+                        const caseNum = String(i).padStart(3, '0');
+                        const testPath = `assets/data/case${caseNum}/metadata.json`;
+                        try {
+                            const testResponse = await fetch(testPath);
+                            if (testResponse.ok) {
+                                availableCases.push(`case${caseNum}`);
+                            }
+                        } catch (e) {
+                            // Case doesn't exist, continue
+                        }
+                    }
+                }
+
+                // If still no cases, use default
+                if (availableCases.length === 0) {
+                    availableCases = ['case001', 'case002', 'case003'];
+                }
+
+                updateCaseSelector();
+            } catch (error) {
+                console.error('Error loading cases:', error);
+                availableCases = ['case001', 'case002', 'case003'];
+                updateCaseSelector();
+            }
+        }
+
+        // Update case selector dropdown
+        function updateCaseSelector() {
+            const selector = document.getElementById('caseSelector');
+            selector.innerHTML = '<option value="">-- Select Case --</option>';
+            
+            availableCases.forEach(caseId => {
+                const option = document.createElement('option');
+                option.value = caseId;
+                option.textContent = caseId.toUpperCase();
+                selector.appendChild(option);
+            });
+        }
+
+        // Load case data
+        async function loadCase(caseId) {
+            if (!caseId) return;
+
+            showLoading(true);
+            hideError();
+            currentCase = caseId;
+
+            try {
+                const basePath = `assets/data/${caseId}`;
+                
+                // Load metadata
+                const metadataResponse = await fetch(`${basePath}/metadata.json`);
+                if (!metadataResponse.ok) {
+                    throw new Error(`Failed to load metadata for ${caseId}`);
+                }
+                const metadata = await metadataResponse.json();
+
+                // Load volumes
+                const groundtruthPath = `${basePath}/groundtruth.nii.gz`;
+                const predictionPath = `${basePath}/prediction.nii.gz`;
+                const errorPath = `${basePath}/error.nii.gz`;
+
+                // Load all volumes
+                await Promise.all([
+                    groundtruthViewer.loadVolumes([{ url: groundtruthPath }]),
+                    predictionViewer.loadVolumes([{ url: predictionPath }]),
+                    errorViewer.loadVolumes([{ url: errorPath }])
+                ]);
+
+                // Display metrics
+                displayMetrics(metadata);
+
+                // Show panels
+                document.getElementById('panelsContainer').style.display = 'grid';
+                document.getElementById('sliceControls').style.display = 'block';
+                document.getElementById('metricsContainer').style.display = 'block';
+
+                // Initialize sliders
+                updateSliderValues();
+
+                // Initialize 3D visualization if enabled
+                init3DVisualization(metadata);
+
+                showLoading(false);
+            } catch (error) {
+                console.error('Error loading case:', error);
+                showError(`Failed to load case ${caseId}. Please check that the data files exist.`);
+                showLoading(false);
+            }
+        }
+
+        // Display metrics
+        function displayMetrics(metadata) {
+            const metrics = metadata.metrics || {};
+            
+            document.getElementById('diceValue').textContent = 
+                (metrics.dice !== undefined) ? metrics.dice.toFixed(4) : '-';
+            document.getElementById('iouValue').textContent = 
+                (metrics.iou !== undefined) ? metrics.iou.toFixed(4) : '-';
+            document.getElementById('sensitivityValue').textContent = 
+                (metrics.sensitivity !== undefined) ? metrics.sensitivity.toFixed(4) : '-';
+            document.getElementById('specificityValue').textContent = 
+                (metrics.specificity !== undefined) ? metrics.specificity.toFixed(4) : '-';
+            document.getElementById('precisionValue').textContent = 
+                (metrics.precision !== undefined) ? metrics.precision.toFixed(4) : '-';
+            document.getElementById('hausdorffValue').textContent = 
+                (metrics.hausdorff !== undefined) ? metrics.hausdorff.toFixed(2) : '-';
+        }
+
+        // Initialize 3D error point cloud visualization
+        function init3DVisualization(metadata) {
+            if (!metadata.errorPoints || metadata.errorPoints.length === 0) {
+                document.getElementById('threejsContainer').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('threejsContainer').style.display = 'block';
+
+            const canvas = document.getElementById('threejs-canvas');
+            
+            if (!isThreeJSInitialized) {
+                // Setup Three.js scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x1a1a1a);
+
+                camera = new THREE.PerspectiveCamera(
+                    75,
+                    canvas.clientWidth / canvas.clientHeight,
+                    0.1,
+                    1000
+                );
+                camera.position.z = 150;
+
+                renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+                // Add lights
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(10, 10, 10);
+                scene.add(directionalLight);
+
+                isThreeJSInitialized = true;
+            }
+
+            // Clear previous point cloud
+            if (pointCloud) {
+                scene.remove(pointCloud);
+            }
+
+            // Create point cloud geometry
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const colors = [];
+
+            metadata.errorPoints.forEach(point => {
+                positions.push(point.x, point.y, point.z);
+                
+                // Color: red for false positives, blue for false negatives
+                if (point.type === 'FP') {
+                    colors.push(1, 0, 0); // Red
+                } else {
+                    colors.push(0, 0, 1); // Blue
+                }
+            });
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 2,
+                vertexColors: true
+            });
+
+            pointCloud = new THREE.Points(geometry, material);
+            scene.add(pointCloud);
+
+            // Animate
+            function animate() {
+                requestAnimationFrame(animate);
+                if (pointCloud) {
+                    pointCloud.rotation.y += 0.001;
+                }
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            });
+        }
+
+        // Show/hide loading message
+        function showLoading(show) {
+            document.getElementById('loadingMessage').style.display = show ? 'block' : 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Event listeners
+        document.getElementById('caseSelector').addEventListener('change', (e) => {
+            loadCase(e.target.value);
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            if (currentCase) {
+                loadCase(currentCase);
+            } else {
+                loadAvailableCases();
+            }
+        });
+
+        // Slice controls
+        document.getElementById('axialSlider').addEventListener('input', (e) => {
+            if (!groundtruthViewer || !groundtruthViewer.volumes || groundtruthViewer.volumes.length === 0) return;
+            const pos = groundtruthViewer.scene.crosshairPos;
+            pos[2] = parseFloat(e.target.value);
+            groundtruthViewer.scene.crosshairPos = pos;
+            groundtruthViewer.drawScene();
+            document.getElementById('axialValue').textContent = Math.round(pos[2]);
+        });
+
+        document.getElementById('sagittalSlider').addEventListener('input', (e) => {
+            if (!groundtruthViewer || !groundtruthViewer.volumes || groundtruthViewer.volumes.length === 0) return;
+            const pos = groundtruthViewer.scene.crosshairPos;
+            pos[0] = parseFloat(e.target.value);
+            groundtruthViewer.scene.crosshairPos = pos;
+            groundtruthViewer.drawScene();
+            document.getElementById('sagittalValue').textContent = Math.round(pos[0]);
+        });
+
+        document.getElementById('coronalSlider').addEventListener('input', (e) => {
+            if (!groundtruthViewer || !groundtruthViewer.volumes || groundtruthViewer.volumes.length === 0) return;
+            const pos = groundtruthViewer.scene.crosshairPos;
+            pos[1] = parseFloat(e.target.value);
+            groundtruthViewer.scene.crosshairPos = pos;
+            groundtruthViewer.drawScene();
+            document.getElementById('coronalValue').textContent = Math.round(pos[1]);
+        });
+
+        // View buttons
+        document.getElementById('axialViewBtn').addEventListener('click', () => {
+            if (groundtruthViewer) groundtruthViewer.setSliceType(niivue.SLICE_TYPE.AXIAL);
+            if (predictionViewer) predictionViewer.setSliceType(niivue.SLICE_TYPE.AXIAL);
+            if (errorViewer) errorViewer.setSliceType(niivue.SLICE_TYPE.AXIAL);
+            updateActiveViewButton('axialViewBtn');
+        });
+
+        document.getElementById('sagittalViewBtn').addEventListener('click', () => {
+            if (groundtruthViewer) groundtruthViewer.setSliceType(niivue.SLICE_TYPE.SAGITTAL);
+            if (predictionViewer) predictionViewer.setSliceType(niivue.SLICE_TYPE.SAGITTAL);
+            if (errorViewer) errorViewer.setSliceType(niivue.SLICE_TYPE.SAGITTAL);
+            updateActiveViewButton('sagittalViewBtn');
+        });
+
+        document.getElementById('coronalViewBtn').addEventListener('click', () => {
+            if (groundtruthViewer) groundtruthViewer.setSliceType(niivue.SLICE_TYPE.CORONAL);
+            if (predictionViewer) predictionViewer.setSliceType(niivue.SLICE_TYPE.CORONAL);
+            if (errorViewer) errorViewer.setSliceType(niivue.SLICE_TYPE.CORONAL);
+            updateActiveViewButton('coronalViewBtn');
+        });
+
+        function updateActiveViewButton(activeId) {
+            ['axialViewBtn', 'sagittalViewBtn', 'coronalViewBtn'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            document.getElementById(activeId).classList.add('active');
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initViewers();
+            loadAvailableCases();
+        });
+    </script>
+</body>
+</html>

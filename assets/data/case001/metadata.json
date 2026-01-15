@@ -1,0 +1,25 @@
+{
+  "caseId": "case001",
+  "patientId": "BraTS-GLI-00001",
+  "description": "Glioblastoma case with significant tumor mass",
+  "metrics": {
+    "dice": 0.8534,
+    "iou": 0.7445,
+    "sensitivity": 0.8912,
+    "specificity": 0.9987,
+    "precision": 0.8201,
+    "hausdorff": 12.45
+  },
+  "errorPoints": [
+    { "x": -10, "y": 15, "z": 20, "type": "FP" },
+    { "x": 5, "y": -8, "z": 12, "type": "FN" },
+    { "x": 18, "y": 22, "z": -5, "type": "FP" },
+    { "x": -15, "y": 10, "z": 8, "type": "FN" },
+    { "x": 12, "y": -18, "z": 15, "type": "FP" },
+    { "x": -8, "y": 20, "z": -10, "type": "FN" },
+    { "x": 25, "y": -12, "z": 18, "type": "FP" },
+    { "x": -20, "y": 5, "z": -15, "type": "FN" },
+    { "x": 8, "y": 28, "z": 22, "type": "FP" },
+    { "x": -25, "y": -5, "z": 10, "type": "FN" }
+  ]
+}

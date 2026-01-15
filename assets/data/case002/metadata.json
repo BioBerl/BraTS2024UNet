@@ -1,0 +1,23 @@
+{
+  "caseId": "case002",
+  "patientId": "BraTS-GLI-00002",
+  "description": "Lower grade glioma with diffuse infiltration",
+  "metrics": {
+    "dice": 0.7821,
+    "iou": 0.6421,
+    "sensitivity": 0.8156,
+    "specificity": 0.9945,
+    "precision": 0.7512,
+    "hausdorff": 18.32
+  },
+  "errorPoints": [
+    { "x": -12, "y": 18, "z": 25, "type": "FP" },
+    { "x": 8, "y": -10, "z": 15, "type": "FN" },
+    { "x": 22, "y": 20, "z": -8, "type": "FP" },
+    { "x": -18, "y": 12, "z": 10, "type": "FN" },
+    { "x": 15, "y": -22, "z": 18, "type": "FP" },
+    { "x": -10, "y": 25, "z": -12, "type": "FN" },
+    { "x": 28, "y": -15, "z": 20, "type": "FP" },
+    { "x": -22, "y": 8, "z": -18, "type": "FN" }
+  ]
+}
