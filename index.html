@@ -380,25 +380,41 @@
         let scene, camera, renderer, pointCloud;
         let isThreeJSInitialized = false;
 
+        // Check if libraries are loaded
+        function checkLibraries() {
+            if (typeof niivue === 'undefined') {
+                showError('NiiVue library failed to load. Please check your internet connection or use a different browser.');
+                return false;
+            }
+            return true;
+        }
+
         // Initialize NiiVue viewers
         function initViewers() {
-            groundtruthViewer = new niivue.Niivue({
-                show3Dcrosshair: true,
-                backColor: [0.1, 0.1, 0.1, 1]
-            });
-            groundtruthViewer.attachToCanvas(document.getElementById('groundtruth-canvas'));
+            if (!checkLibraries()) return;
+            
+            try {
+                groundtruthViewer = new niivue.Niivue({
+                    show3Dcrosshair: true,
+                    backColor: [0.1, 0.1, 0.1, 1]
+                });
+                groundtruthViewer.attachToCanvas(document.getElementById('groundtruth-canvas'));
 
-            predictionViewer = new niivue.Niivue({
-                show3Dcrosshair: true,
-                backColor: [0.1, 0.1, 0.1, 1]
-            });
-            predictionViewer.attachToCanvas(document.getElementById('prediction-canvas'));
+                predictionViewer = new niivue.Niivue({
+                    show3Dcrosshair: true,
+                    backColor: [0.1, 0.1, 0.1, 1]
+                });
+                predictionViewer.attachToCanvas(document.getElementById('prediction-canvas'));
 
-            errorViewer = new niivue.Niivue({
-                show3Dcrosshair: true,
-                backColor: [0.1, 0.1, 0.1, 1]
-            });
-            errorViewer.attachToCanvas(document.getElementById('error-canvas'));
+                errorViewer = new niivue.Niivue({
+                    show3Dcrosshair: true,
+                    backColor: [0.1, 0.1, 0.1, 1]
+                });
+                errorViewer.attachToCanvas(document.getElementById('error-canvas'));
+            } catch (e) {
+                showError('Failed to initialize viewers: ' + e.message);
+                return;
+            }
 
             // Synchronize viewers
             synchronizeViewers();

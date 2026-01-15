@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BraTS 2024 - Brain Tumor Segmentation Viewer (Demo)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .controls {
+            background: #2a2a2a;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+        }
+
+        select, button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        select:hover, button:hover {
+            background: #764ba2;
+        }
+
+        select {
+            min-width: 150px;
+        }
+
+        .panels-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+        }
+
+        .panel {
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            background: #333;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .panel-content {
+            position: relative;
+            height: 400px;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .demo-image {
+            width: 90%;
+            height: 90%;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+        }
+
+        .demo-groundtruth {
+            background: radial-gradient(circle at center, #ff6b6b 0%, #4ecdc4 50%, #1a1a1a 80%);
+        }
+
+        .demo-prediction {
+            background: radial-gradient(circle at 55% 55%, #ff6b6b 0%, #4ecdc4 50%, #1a1a1a 80%);
+        }
+
+        .demo-error {
+            background: radial-gradient(circle at center, #ff4444 30%, #4444ff 45%, #1a1a1a 70%);
+        }
+
+        .metrics-container {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 2px solid #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .slice-controls {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .slice-control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .slice-control-row label {
+            min-width: 100px;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #444;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        .slice-value {
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .view-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .view-button {
+            flex: 1;
+            padding: 10px;
+            background: #444;
+            border: 2px solid #667eea;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .view-button.active {
+            background: #667eea;
+        }
+
+        .view-button:hover {
+            background: #764ba2;
+        }
+
+        .threejs-container {
+            background: #2a2a2a;
+            margin: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .threejs-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .demo-3d {
+            width: 100%;
+            height: 400px;
+            border-radius: 5px;
+            background: radial-gradient(ellipse at center, #667eea 0%, #1a1a1a 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .point-cloud {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            animation: rotate 10s infinite linear;
+        }
+
+        @keyframes rotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        .point {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+        }
+
+        .fp { background: #ff4444; }
+        .fn { background: #4444ff; }
+
+        @media (max-width: 1200px) {
+            .panels-container {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-content {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 BraTS 2024 - Brain Tumor Segmentation Viewer</h1>
+        <p>Interactive 3-Panel NIFTI Visualization with Ground Truth, Predictions, and Error Analysis</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="caseSelector">Case:</label>
+            <select id="caseSelector">
+                <option value="case001" selected>CASE001</option>
+                <option value="case002">CASE002</option>
+                <option value="case003">CASE003</option>
+            </select>
+        </div>
+        <button id="refreshBtn">🔄 Refresh</button>
+    </div>
+
+    <div class="panels-container">
+        <div class="panel">
+            <div class="panel-header">Ground Truth Mask</div>
+            <div class="panel-content">
+                <div class="demo-image demo-groundtruth">🧠</div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Prediction Mask</div>
+            <div class="panel-content">
+                <div class="demo-image demo-prediction">🧠</div>
+            </div>
+        </div>
+        <div class="panel">
+            <div class="panel-header">Error Map (FP/FN)</div>
+            <div class="panel-content">
+                <div class="demo-image demo-error">⚠️</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slice-controls">
+        <h3>Slice Navigation</h3>
+        <div class="slice-control-row">
+            <label>Axial:</label>
+            <input type="range" id="axialSlider" min="0" max="63" value="32">
+            <span class="slice-value">32</span>
+        </div>
+        <div class="slice-control-row">
+            <label>Sagittal:</label>
+            <input type="range" id="sagittalSlider" min="0" max="63" value="32">
+            <span class="slice-value">32</span>
+        </div>
+        <div class="slice-control-row">
+            <label>Coronal:</label>
+            <input type="range" id="coronalSlider" min="0" max="63" value="32">
+            <span class="slice-value">32</span>
+        </div>
+        <div class="view-buttons">
+            <button class="view-button active">Axial View</button>
+            <button class="view-button">Sagittal View</button>
+            <button class="view-button">Coronal View</button>
+        </div>
+    </div>
+
+    <div class="metrics-container">
+        <h3>Segmentation Metrics</h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Dice Score</div>
+                <div class="metric-value">0.8534</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">IoU (Jaccard Index)</div>
+                <div class="metric-value">0.7445</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Sensitivity (Recall)</div>
+                <div class="metric-value">0.8912</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Specificity</div>
+                <div class="metric-value">0.9987</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Precision</div>
+                <div class="metric-value">0.8201</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Hausdorff Distance</div>
+                <div class="metric-value">12.45</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="threejs-container">
+        <h3 class="threejs-title">3D Error Point Cloud Visualization</h3>
+        <div class="demo-3d">
+            <div class="point-cloud" id="pointCloud"></div>
+        </div>
+    </div>
+
+    <script>
+        // Create animated point cloud
+        const pointCloud = document.getElementById('pointCloud');
+        for (let i = 0; i < 50; i++) {
+            const point = document.createElement('div');
+            point.className = 'point ' + (Math.random() > 0.5 ? 'fp' : 'fn');
+            point.style.left = Math.random() * 200 + 'px';
+            point.style.top = Math.random() * 200 + 'px';
+            pointCloud.appendChild(point);
+        }
+
+        // Slider interactivity
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                e.target.nextElementSibling.textContent = e.target.value;
+            });
+        });
+    </script>
+</body>
+</html>
