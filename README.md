@@ -211,7 +211,7 @@ If you use this implementation, please cite:
   title={BraTS2024UNet: 3D U-Net Implementation for Brain Tumor Segmentation},
   author={[Your Name]},
   year={2024},
-  howpublished={\url{https://github.com/[your-username]/BraTS2024UNet}}
+  howpublished={\url{https://github.com/BioBerl/BraTS2024UNet}}
 }
 ```
 
